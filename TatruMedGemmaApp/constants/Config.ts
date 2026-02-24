@@ -1,0 +1,58 @@
+import { Platform } from 'react-native';
+
+const DEFAULT_LAN_OLLAMA_URL = 'http://192.168.50.209:11434';
+
+export type InferenceMode = 'device' | 'lan' | 'cloud' | 'flask' | 'kaggle';
+
+const getLocalhost = () => {
+  const configuredBaseUrl = process.env.EXPO_PUBLIC_OLLAMA_BASE_URL?.trim();
+  if (configuredBaseUrl) {
+    return configuredBaseUrl;
+  }
+
+  if (Platform.OS === 'android') {
+    return DEFAULT_LAN_OLLAMA_URL;
+  }
+
+  if (Platform.OS === 'ios') {
+    return DEFAULT_LAN_OLLAMA_URL;
+  }
+
+  return 'http://localhost:11434';
+};
+
+export const OLLAMA_BASE_URL = getLocalhost();
+export const GEMMA_MODEL = process.env.EXPO_PUBLIC_OLLAMA_MODEL?.trim() || 'MedAIBase/MedGemma1.5:4b';
+export const OLLAMA_SYSTEM_PROMPT =
+  process.env.EXPO_PUBLIC_OLLAMA_SYSTEM_PROMPT?.trim() ||
+  'You are a medical assistant powered by MedGemma. Give clear, concise, safe guidance and suggest seeking licensed clinical care when uncertainty or risk is high.';
+
+const resolveDefaultInferenceMode = (): InferenceMode => {
+  const configured = process.env.EXPO_PUBLIC_INFERENCE_MODE?.trim().toLowerCase();
+  if (
+    configured === 'device' ||
+    configured === 'lan' ||
+    configured === 'cloud' ||
+    configured === 'flask' ||
+    configured === 'kaggle'
+  ) {
+    return configured;
+  }
+  return 'lan';
+};
+
+export const DEFAULT_INFERENCE_MODE = resolveDefaultInferenceMode();
+
+export const CLOUD_BASE_URL =
+  process.env.EXPO_PUBLIC_CLOUD_BASE_URL?.trim() || 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+export const CLOUD_MODEL = process.env.EXPO_PUBLIC_CLOUD_MODEL?.trim() || 'gemini-2.5-flash';
+export const CLOUD_API_KEY = process.env.EXPO_PUBLIC_CLOUD_API_KEY?.trim() || '';
+export const CLOUD_SYSTEM_PROMPT =
+  process.env.EXPO_PUBLIC_CLOUD_SYSTEM_PROMPT?.trim() || OLLAMA_SYSTEM_PROMPT;
+
+export const GUARDRAILS_MANIFEST_URL =
+  process.env.EXPO_PUBLIC_GUARDRAILS_MANIFEST_URL?.trim() || '';
+
+// Kaggle Spaces Gradio endpoint, e.g. https://abc123.gradio.live
+export const KAGGLE_GRADIO_URL =
+  process.env.EXPO_PUBLIC_KAGGLE_GRADIO_URL?.trim() || 'https://0f9900aa8f37a62d2e.gradio.live';

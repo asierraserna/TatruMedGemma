@@ -1,0 +1,91 @@
+{
+  "manifestVersion": 1,
+  "project": "GemmaMed-help-guardrails",
+  "dbVersion": "2026.02.21.1",
+  "releasedAt": "2026-02-21T12:00:00Z",
+  "environment": "production",
+  "tenant": "default",
+  "minAppVersion": "1.0.0",
+  "recommendedAppVersion": "1.2.0",
+  "locale": "en-US",
+  "notes": "Baseline guardrails package with auditable topics and prompt templates.",
+  "compatibility": {
+    "minSchemaVersion": "2026.02",
+    "maxSchemaVersion": "2027.12"
+  },
+  "bundles": [
+    {
+      "name": "guardrails.db",
+      "url": "https://your-server.example.com/guardrails/2026.02.21.1/guardrails.db",
+      "sizeBytes": 7438336,
+      "sha256": "REPLACE_WITH_SHA256_HEX",
+      "required": true
+    },
+    {
+      "name": "metadata.json",
+      "url": "https://your-server.example.com/guardrails/2026.02.21.1/metadata.json",
+      "sizeBytes": 6439,
+      "sha256": "REPLACE_WITH_SHA256_HEX",
+      "required": false
+    },
+    {
+      "name": "policy-pack.json",
+      "url": "https://your-server.example.com/guardrails/2026.02.21.1/policy-pack.json",
+      "sizeBytes": 12455,
+      "sha256": "REPLACE_WITH_SHA256_HEX",
+      "required": false
+    },
+    {
+      "name": "prompt-pack.json",
+      "url": "https://your-server.example.com/guardrails/2026.02.21.1/prompt-pack.json",
+      "sizeBytes": 8422,
+      "sha256": "REPLACE_WITH_SHA256_HEX",
+      "required": false
+    }
+  ],
+  "contentSummary": {
+    "conditions": 1200,
+    "symptoms": 1800,
+    "redFlags": 240,
+    "triageRules": 800,
+    "drugs": 3500,
+    "contraindications": 6100,
+    "guidanceSnippets": 12000
+  },
+  "topicPolicyPack": {
+    "version": "topics-2026.02.21",
+    "defaultDecision": "deny",
+    "updatedBy": "clinical-ops@example.com",
+    "topicCount": 26,
+    "url": "https://your-server.example.com/guardrails/2026.02.21.1/policy-pack.json"
+  },
+  "promptPack": {
+    "templateKey": "medgemma_system",
+    "activeVersion": "1.3.2",
+    "approvalTicket": "MEDSAFE-219",
+    "updatedBy": "prompt-team@example.com",
+    "url": "https://your-server.example.com/guardrails/2026.02.21.1/prompt-pack.json"
+  },
+  "rollback": {
+    "previousDbVersion": "2026.02.14.4",
+    "previousManifestUrl": "https://your-server.example.com/guardrails/2026.02.14.4/manifest.json"
+  },
+  "license": {
+    "id": "custom-mixed-sources",
+    "attributionUrl": "https://your-server.example.com/guardrails/attribution"
+  },
+  "integrity": {
+    "hashAlgorithm": "sha256",
+    "requiredSignatures": 1
+  },
+  "signature": {
+    "algorithm": "ed25519",
+    "publicKeyId": "gmh-guardrails-prod-1",
+    "payloadDigestSha256": "REPLACE_WITH_SHA256_HEX",
+    "value": "REPLACE_WITH_BASE64_SIGNATURE"
+  },
+  "emergencyKillSwitch": {
+    "enabled": false,
+    "message": ""
+  }
+}
