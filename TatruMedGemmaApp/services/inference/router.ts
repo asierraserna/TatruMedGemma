@@ -2,7 +2,6 @@ import { useInferenceStore, getActiveGuardrailsPrompt } from '../../store/infere
 import { InferenceMode } from '../../constants/Config';
 import { Message } from '../../types';
 import { analyzeImageWithMedsiglip } from '../medsiglipService';
-import { pullModel } from '../ollamaService';
 import { cloudProvider } from './providers/cloudProvider';
 import { deviceProvider } from './providers/deviceProvider';
 import { lanOllamaProvider } from './providers/lanOllamaProvider';
@@ -146,23 +145,4 @@ export const checkActiveProviderConnection = async (timeoutMs = 3000): Promise<P
       connected: false,
     };
   }
-};
-
-export const pullLanModelOnDemand = async (options?: {
-  signal?: AbortSignal;
-  onProgress?: (progress: {
-    status: string;
-    completed?: number;
-    total?: number;
-    percent?: number;
-  }) => void;
-}) => {
-  const { lan } = useInferenceStore.getState();
-
-  await pullModel({
-    baseUrl: lan.baseUrl,
-    model: lan.model,
-    signal: options?.signal,
-    onProgress: options?.onProgress,
-  });
 };

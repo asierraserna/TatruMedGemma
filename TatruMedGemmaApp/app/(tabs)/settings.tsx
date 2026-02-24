@@ -39,6 +39,7 @@ export const options = {
 
 export default function SettingsScreen() {
   const mode = useInferenceStore((state) => state.mode);
+  const device = useInferenceStore((state) => state.device);
   const lan = useInferenceStore((state) => state.lan);
   const cloud = useInferenceStore((state) => state.cloud);
   const flask = useInferenceStore((state) => state.flask);
@@ -49,6 +50,9 @@ export default function SettingsScreen() {
   const actions = useInferenceStore((state) => state.actions);
 
   const [draftMode, setDraftMode] = useState<InferenceMode>(mode);
+  const [deviceModelId, setDeviceModelId] = useState(device.modelId);
+  const [deviceGgufUrl, setDeviceGgufUrl] = useState(device.ggufUrl);
+  const [deviceMmprojUrl, setDeviceMmprojUrl] = useState(device.mmprojUrl || '');
   const [lanBaseUrl, setLanBaseUrl] = useState(lan.baseUrl);
   const [lanModel, setLanModel] = useState(lan.model);
   const [cloudBaseUrl, setCloudBaseUrl] = useState(cloud.baseUrl);
@@ -105,6 +109,9 @@ export default function SettingsScreen() {
   const hasChanges = useMemo(() => {
     return (
       draftMode !== mode ||
+      deviceModelId !== device.modelId ||
+      deviceGgufUrl !== device.ggufUrl ||
+      deviceMmprojUrl !== (device.mmprojUrl || '') ||
       lanBaseUrl !== lan.baseUrl ||
       lanModel !== lan.model ||
       cloudBaseUrl !== cloud.baseUrl ||
@@ -133,6 +140,12 @@ export default function SettingsScreen() {
     medasrModel,
     medasrBaseUrl,
     medasrTranscribePath,
+    device.ggufUrl,
+    device.mmprojUrl,
+    device.modelId,
+    deviceGgufUrl,
+    deviceMmprojUrl,
+    deviceModelId,
     medsiglip.enabled,
     medsiglip.model,
     medsiglip.baseUrl,
@@ -186,6 +199,11 @@ export default function SettingsScreen() {
     }
 
     actions.setMode(draftMode);
+    actions.updateDevice({
+      modelId: deviceModelId.trim(),
+      ggufUrl: deviceGgufUrl.trim(),
+      mmprojUrl: deviceMmprojUrl.trim() || undefined,
+    });
     actions.updateLan({
       baseUrl: lanBaseUrl.trim(),
       model: lanModel.trim(),
@@ -499,6 +517,38 @@ export default function SettingsScreen() {
             </View>
 
             {/* LAN, Cloud, MedSigLIP, MedASR settings */}
+            <Text style={styles.sectionTitle}>On-device (GGUF)</Text>
+            <Text style={styles.fieldLabel}>Model ID</Text>
+            <TextInput
+              style={styles.input}
+              value={deviceModelId}
+              onChangeText={setDeviceModelId}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="google/medgemma-4b-it"
+            />
+            <Text style={styles.fieldLabel}>GGUF Download URL</Text>
+            <TextInput
+              style={styles.input}
+              value={deviceGgufUrl}
+              onChangeText={setDeviceGgufUrl}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="https://huggingface.co/.../medgemma-4b-it-Q4_K_S.gguf"
+            />
+            <Text style={styles.fieldLabel}>mmproj URL (optional for vision)</Text>
+            <TextInput
+              style={styles.input}
+              value={deviceMmprojUrl}
+              onChangeText={setDeviceMmprojUrl}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="https://huggingface.co/.../mmproj-F16.gguf"
+            />
+            <Text style={styles.helperText}>
+              Public, direct URLs are easiest for mobile download. Hugging Face resolve links work well for no-login access.
+            </Text>
+
             <Text style={styles.sectionTitle}>LAN (Ollama)</Text>
             <Text style={styles.fieldLabel}>Base URL</Text>
             <TextInput
@@ -1354,6 +1404,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 12,
     gap: 8,
+    marginTop: 34,
   },
   sectionMenuButton: {
     paddingVertical: 6,

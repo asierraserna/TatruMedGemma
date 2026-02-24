@@ -1,0 +1,15 @@
+name: medgemma2
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - flask>=3.0.0
+    - flask-cors>=4.0.0
+    - transformers
+    - torch
+    - pillow
+    - accelerate
+    - bitsandbytes>=0.43.0
