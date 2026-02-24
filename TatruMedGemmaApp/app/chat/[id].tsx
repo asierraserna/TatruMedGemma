@@ -254,6 +254,7 @@ export default function ChatScreen() {
         onClearImage={() => setSelectedImageUri(null)}
       />
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

@@ -57,7 +57,8 @@ export const CLOUD_SYSTEM_PROMPT =
   process.env.EXPO_PUBLIC_CLOUD_SYSTEM_PROMPT?.trim() || OLLAMA_SYSTEM_PROMPT;
 
 export const GUARDRAILS_MANIFEST_URL =
-  process.env.EXPO_PUBLIC_GUARDRAILS_MANIFEST_URL?.trim() || '';
+  process.env.EXPO_PUBLIC_GUARDRAILS_MANIFEST_URL?.trim() ||
+  'https://raw.githubusercontent.com/asierraserna/TatruMedGemma/refs/heads/main/TatruMedGemmaApp/guardrails/manifest.example.json';
 
 // Kaggle Spaces Gradio endpoint, e.g. https://abc123.gradio.live
 export const KAGGLE_GRADIO_URL =

@@ -14,10 +14,16 @@ type IconSymbolName = keyof typeof MAPPING;
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
 const MAPPING = {
-  'house.fill': 'home',
+  'house.fill': 'chat',
+  // Keep send mapping for paper plane symbol
   'paperplane.fill': 'send',
+  // Code and chevron mappings
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  // Gear/Settings mapping (SF Symbol `gearshape.fill` -> Material `settings`)
+  'gearshape.fill': 'settings',
+  // Optionally map an AI-ish sparkle symbol (SF: `sparkles`) to Material `auto-awesome`
+  'sparkles': 'auto-awesome',
 } as IconMapping;
 
 /**
