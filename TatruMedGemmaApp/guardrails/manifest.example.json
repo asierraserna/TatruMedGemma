@@ -12,6 +12,7 @@
     "minSchemaVersion": "2026.02",
     "maxSchemaVersion": "2027.12"
   },
+  "dbVersion": "1.0",
   "selfContained": true,
   "bundles": [],
 
