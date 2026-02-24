@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, FlatList, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useChatStore } from '../../store/chatStore';
@@ -11,6 +12,7 @@ import { Message } from '../../types';
 import { useInferenceStore } from '../../store/inferenceStore';
 
 export default function ChatScreen() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { sessions, actions } = useChatStore();
   
@@ -217,14 +219,15 @@ export default function ChatScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
-      <Stack.Screen options={{ title: currentSession.title || 'Chat' }} />
-      
-      <View style={styles.listContainer}>
+    <SafeAreaView style={[styles.container, { paddingBottom: insets.bottom }]}>      
+      <KeyboardAvoidingView 
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <Stack.Screen options={{ title: currentSession.title || 'Chat' }} />
+        
+        <View style={styles.listContainer}>
         <FlatList
           ref={flatListRef}
           data={displayedMessages}
@@ -238,6 +241,7 @@ export default function ChatScreen() {
       </View>
       
       <InputArea 
+        style={{paddingBottom: insets.bottom}}
         onSend={handleSend} 
         onCamera={handleCamera}
         onGallery={handleGallery}
@@ -258,6 +262,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+
   listContainer: {
     flex: 1,
   },

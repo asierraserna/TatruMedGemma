@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, StyleProp, ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 interface InputAreaProps {
@@ -13,6 +14,7 @@ interface InputAreaProps {
   loading?: boolean;
   selectedImageUri?: string | null;
   onClearImage?: () => void;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const InputArea: React.FC<InputAreaProps> = ({
@@ -26,7 +28,10 @@ export const InputArea: React.FC<InputAreaProps> = ({
   loading,
   selectedImageUri,
   onClearImage,
+  style,
 }) => {
+  const insets = useSafeAreaInsets();
+
   const [internalText, setInternalText] = useState('');
   const [analyzingImage, setAnalyzingImage] = useState(false);
 
@@ -65,7 +70,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style, {paddingBottom: Platform.OS === 'ios' ? insets.bottom : insets.bottom || 8}]}>
       {!!selectedImageUri && (
         <View style={styles.attachmentRow}>
           <Text style={styles.attachmentText}>Image attached</Text>
