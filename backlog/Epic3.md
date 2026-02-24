@@ -24,3 +24,10 @@ Enhance the chat experience by allowing users to share images and audio for bett
 **As a** user,
 **I want** to manage (view/delete) the media files associated with my chats,
 **So that** I maintain control over my personal health data.
+
+## Progress
+
+- ✅ US3.1: Image attachment from camera/gallery implemented; messages can include image URIs and display properly in chat.
+- 🟡 US3.2 / US3.3: Audio capture infrastructure exists but transcription and analysis flows are still TODO.
+- 🟡 US3.4: Basic deletion UI present; further polish needed for media management screen.
+

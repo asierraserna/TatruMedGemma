@@ -8,6 +8,8 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
    ```bash
    npm install
+   # install extra packages used by the app
+   expo install expo-speech
    ```
 
 2. Start the app

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Markdown from 'react-native-markdown-display';
+import * as Speech from 'expo-speech';
 import { Message } from '../types';
 
 interface MessageItemProps {
@@ -42,6 +43,11 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
 
   const renderedText = parsedContent.answer || message.content;
   
+  const onSpeak = (text: string) => {
+    if (!text) return;
+    Speech.speak(text);
+  };
+  
   return (
     <View style={[
       styles.container, 
@@ -68,6 +74,15 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
               </View>
             )}
           </View>
+        )}
+        {/* TTS button for assistant messages */}
+        {!isUser && (
+          <TouchableOpacity
+            style={styles.ttsButton}
+            onPress={() => onSpeak(renderedText)}
+          >
+            <Text>🔊</Text>
+          </TouchableOpacity>
         )}
         <Markdown
           style={isUser ? userMarkdownStyles : assistantMarkdownStyles}
@@ -143,6 +158,12 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#efeff4',
     borderRadius: 8,
+  },
+  ttsButton: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    padding: 4,
   },
 });
 

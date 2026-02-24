@@ -24,3 +24,11 @@ Establish the foundational structure of the React Native Expo application, inclu
 **As a** user,
 **I want** a clean, calming, and accessible interface (e.g., medical-friendly colors),
 **So that** I feel reassured while using the app in stressful situations.
+
+## Progress
+
+- ✅ US1.1: Project created with Expo/TypeScript; codebase lives in `TatruMedGemmaApp/`.
+- ✅ US1.2: Navigation stack and tab layout implemented (`app/(tabs)` folder).
+- ✅ US1.3: Async storage/SQLite is used for persisting chat sessions and settings.
+- ✅ US1.4: Theme constants defined, and UI components follow neutral medical palette.
+
