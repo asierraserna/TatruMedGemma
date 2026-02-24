@@ -15,7 +15,13 @@
   "dbVersion": "1.0",
   "selfContained": true,
   "bundles": [
-    {"name": "placeholder", "version": "1.0"}
+    {
+      "name": "placeholder",
+      "version": "1.0",
+      "url": "https://example.com/placeholder.bundle",
+      "sizebytes": 1,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
   ],
 
   "policy": {
