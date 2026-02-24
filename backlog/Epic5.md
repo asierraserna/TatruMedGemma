@@ -30,6 +30,8 @@ Implement a three-level inference architecture so users can run MedGemma on-devi
 **I want** an explicit on-device provider abstraction and fallback behavior,
 **So that** native inference integration can be added safely without rewriting chat flows.
 
+(Fulfilled – local provider now loads GGUF files, performs textgen via llama.rn, and is selectable alongside LAN/Cloud.)
+
 ### US5.6: Curated MedGemma Catalog
 **As a** user,
 **I want** to browse supported MedGemma variants with size and compatibility metadata,
@@ -39,6 +41,8 @@ Implement a three-level inference architecture so users can run MedGemma on-devi
 **As a** user,
 **I want** resumable model downloads with integrity checks,
 **So that** local model setup is reliable and safe.
+
+(Basic resumable download & manifest logic now implemented; checksum verification remains for production.)
 
 ### US5.8: Cloud Failover Policy
 **As a** user,
@@ -58,7 +62,8 @@ Implement a three-level inference architecture so users can run MedGemma on-devi
 - ✅ US5.2 Route Chat Through Active Provider (implemented).
 - ✅ US5.3 Persist Provider Settings (implemented with editable runtime UI).
 - ✅ US5.4 Provider Health Visibility (implemented).
-- 🟡 US5.7 Model Download and Verification (partial): LAN Ollama on-demand pull with live progress and retry is implemented; checksum verification remains pending.
+- 🟢 US5.7 Model Download and Verification (partial → mostly done): on-device GGUF/`mmproj` downloads now support resumable progress, space checking, manifest validation, **cancel (AbortController)**, and **clear files (with confirmation)**; only SHA256 check is pending.
+- ✅ Device provider complete: offline inference works end‑to‑end with history trimming, speed modes (fast/balanced/quality), and UI integration.
 - ✅ Multimodal image input in chat (camera/gallery attachment + render in transcript).
 - ✅ MedSigLIP LAN configuration fields (enable flag + endpoint/model/path).
 - ✅ MedASR LAN configuration fields (enable flag + endpoint/model/path).

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +9,7 @@ import {
   getInferenceModeLabel,
 } from '../../services/inference/router';
 import { useInferenceStore } from '../../store/inferenceStore';
-import { downloadDeviceModel, getDeviceModelState } from '../../services/inference/deviceModelService';
+import { clearDeviceModelFiles, downloadDeviceModel, getDeviceModelState } from '../../services/inference/deviceModelService';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -25,6 +25,7 @@ export default function HomeScreen() {
   const [providerConnected, setProviderConnected] = useState<boolean | null>(null);
   const [preparingDeviceModel, setPreparingDeviceModel] = useState(false);
   const [deviceModelStatus, setDeviceModelStatus] = useState<string | null>(null);
+  const downloadAbortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -57,12 +58,23 @@ export default function HomeScreen() {
     deviceMmprojUrl,
   ]);
 
+  useEffect(() => {
+    return () => {
+      downloadAbortControllerRef.current?.abort();
+      downloadAbortControllerRef.current = null;
+    };
+  }, []);
+
   const handlePrepareDeviceModel = async () => {
+    const abortController = new AbortController();
+    downloadAbortControllerRef.current = abortController;
+
     setPreparingDeviceModel(true);
     setDeviceModelStatus('Downloading GGUF...');
 
     try {
       await downloadDeviceModel({
+        signal: abortController.signal,
         onProgress: (progress) => {
           const targetLabel = progress.stage === 'mmproj' ? 'mmproj' : 'GGUF';
           const statusLabel =
@@ -75,20 +87,65 @@ export default function HomeScreen() {
       setProviderConnected(true);
     } catch (error) {
       const message = (error as Error).message || 'Failed to download GGUF model.';
-      setDeviceModelStatus('Error');
-      setProviderConnected(false);
-      Alert.alert('On-device model download failed', message, [
-        {
-          text: 'Retry',
-          onPress: () => {
-            handlePrepareDeviceModel();
+      if (message === 'Download cancelled.') {
+        setDeviceModelStatus('Download cancelled');
+      } else {
+        setDeviceModelStatus('Error');
+        setProviderConnected(false);
+        Alert.alert('On-device model download failed', message, [
+          {
+            text: 'Retry',
+            onPress: () => {
+              handlePrepareDeviceModel();
+            },
           },
-        },
-        { text: 'Close', style: 'cancel' },
-      ]);
+          { text: 'Close', style: 'cancel' },
+        ]);
+      }
     } finally {
+      downloadAbortControllerRef.current = null;
       setPreparingDeviceModel(false);
     }
+  };
+
+  const handleCancelDeviceModelDownload = () => {
+    if (!preparingDeviceModel) {
+      return;
+    }
+
+    downloadAbortControllerRef.current?.abort();
+  };
+
+  const handleClearDeviceModel = () => {
+    if (preparingDeviceModel) {
+      Alert.alert('Download in progress', 'Cancel the download before clearing model files.');
+      return;
+    }
+
+    Alert.alert(
+      'Clear local model files?',
+      'This removes downloaded GGUF/mmproj files and you will need to download them again.',
+      [
+        { text: 'Keep files', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clearDeviceModelFiles();
+              setDeviceModelStatus('Not downloaded');
+              setProviderConnected(false);
+              Alert.alert('Model files cleared', 'On-device model files were removed successfully.');
+            } catch (error) {
+              Alert.alert(
+                'Failed to clear model files',
+                (error as Error).message || 'Could not remove local model files.'
+              );
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleNewChat = () => {
@@ -159,14 +216,32 @@ export default function HomeScreen() {
             <Text style={styles.settingsButtonText}>Settings</Text>
           </TouchableOpacity>
           {inferenceMode === 'device' && (
-            <TouchableOpacity
-              onPress={handlePrepareDeviceModel}
-              style={[styles.pullButton, preparingDeviceModel && styles.pullButtonDisabled]}
-              disabled={preparingDeviceModel}
-            >
-              <Ionicons name="cloud-download-outline" size={18} color="#fff" />
-              <Text style={styles.pullButtonText}>{preparingDeviceModel ? 'Downloading...' : 'Download GGUF'}</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                onPress={handlePrepareDeviceModel}
+                style={[styles.pullButton, preparingDeviceModel && styles.pullButtonDisabled]}
+                disabled={preparingDeviceModel}
+              >
+                <Ionicons name="cloud-download-outline" size={18} color="#fff" />
+                <Text style={styles.pullButtonText}>{preparingDeviceModel ? 'Downloading...' : 'Download GGUF'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleCancelDeviceModelDownload}
+                style={[styles.cancelButton, !preparingDeviceModel && styles.pullButtonDisabled]}
+                disabled={!preparingDeviceModel}
+              >
+                <Ionicons name="close-circle-outline" size={18} color="#fff" />
+                <Text style={styles.pullButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleClearDeviceModel}
+                style={[styles.clearButton, preparingDeviceModel && styles.pullButtonDisabled]}
+                disabled={preparingDeviceModel}
+              >
+                <Ionicons name="trash-outline" size={18} color="#fff" />
+                <Text style={styles.pullButtonText}>Clear files</Text>
+              </TouchableOpacity>
+            </>
           )}
           <TouchableOpacity onPress={handleNewChat} style={styles.newChatButton}>
             <Ionicons name="add" size={24} color="#fff" />
@@ -262,6 +337,22 @@ const styles = StyleSheet.create({
   },
   pullButtonDisabled: {
     opacity: 0.7,
+  },
+  cancelButton: {
+    flexDirection: 'row',
+    backgroundColor: '#ff9500',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  clearButton: {
+    flexDirection: 'row',
+    backgroundColor: '#ff3b30',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignItems: 'center',
   },
   pullButtonText: {
     color: '#fff',

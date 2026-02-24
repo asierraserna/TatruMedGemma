@@ -134,7 +134,7 @@ Also expose a **fast/balanced/quality** toggle for the device provider in Settin
 
 - Resume-safe large downloads
 - SHA256 verification
-- cancellation and timeout handling
+- ~~cancellation and timeout handling~~ ✅ done — Cancel button with AbortController; Clear files button with confirmation dialog
 - memory-based fallback policy (disable vision on low RAM)
 
 ---
