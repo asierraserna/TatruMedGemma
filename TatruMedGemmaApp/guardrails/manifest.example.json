@@ -14,7 +14,9 @@
   },
   "dbVersion": "1.0",
   "selfContained": true,
-  "bundles": [],
+  "bundles": [
+    {"name": "placeholder", "version": "1.0"}
+  ],
 
   "policy": {
     "version": "light-2026.02",
