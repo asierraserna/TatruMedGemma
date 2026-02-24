@@ -7,9 +7,9 @@ import { ChatSession } from '../../types';
 import {
   checkActiveProviderConnection,
   getInferenceModeLabel,
-  pullLanModelOnDemand,
 } from '../../services/inference/router';
 import { useInferenceStore } from '../../store/inferenceStore';
+import { downloadDeviceModel, getDeviceModelState } from '../../services/inference/deviceModelService';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -20,9 +20,11 @@ export default function HomeScreen() {
   const flaskBaseUrl = useInferenceStore((state) => state.flask.baseUrl);
   const cloudBaseUrl = useInferenceStore((state) => state.cloud.baseUrl);
   const kaggleGradioUrl = useInferenceStore((state) => state.kaggle.gradioUrl);
+  const deviceGgufUrl = useInferenceStore((state) => state.device.ggufUrl);
+  const deviceMmprojUrl = useInferenceStore((state) => state.device.mmprojUrl);
   const [providerConnected, setProviderConnected] = useState<boolean | null>(null);
-  const [pullingModel, setPullingModel] = useState(false);
-  const [pullStatus, setPullStatus] = useState<string | null>(null);
+  const [preparingDeviceModel, setPreparingDeviceModel] = useState(false);
+  const [deviceModelStatus, setDeviceModelStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -32,6 +34,11 @@ export default function HomeScreen() {
       if (active) {
         setProviderConnected(status.connected);
       }
+
+      if (active && inferenceMode === 'device') {
+        const modelState = await getDeviceModelState();
+        setDeviceModelStatus(modelState.ggufExists ? 'Ready' : 'Not downloaded');
+      }
     };
 
     loadConnectionStatus();
@@ -39,39 +46,48 @@ export default function HomeScreen() {
     return () => {
       active = false;
     };
-  }, [inferenceMode, lanBaseUrl, lanModel, flaskBaseUrl, cloudBaseUrl, kaggleGradioUrl]);
+  }, [
+    inferenceMode,
+    lanBaseUrl,
+    lanModel,
+    flaskBaseUrl,
+    cloudBaseUrl,
+    kaggleGradioUrl,
+    deviceGgufUrl,
+    deviceMmprojUrl,
+  ]);
 
-  const handlePullModel = async () => {
-    setPullingModel(true);
-    setPullStatus('Preparing download...');
+  const handlePrepareDeviceModel = async () => {
+    setPreparingDeviceModel(true);
+    setDeviceModelStatus('Downloading GGUF...');
 
     try {
-      await pullLanModelOnDemand({
+      await downloadDeviceModel({
         onProgress: (progress) => {
-          const statusLabel = progress.percent != null
-            ? `${progress.status} (${progress.percent}%)`
-            : progress.status;
-          setPullStatus(statusLabel);
+          const targetLabel = progress.stage === 'mmproj' ? 'mmproj' : 'GGUF';
+          const statusLabel =
+            progress.percent != null ? `Downloading ${targetLabel} (${progress.percent}%)` : `Downloading ${targetLabel}`;
+          setDeviceModelStatus(statusLabel);
         },
       });
 
-      setPullStatus('Model ready');
+      setDeviceModelStatus('Ready');
       setProviderConnected(true);
     } catch (error) {
-      const message = (error as Error).message || 'Failed to pull model from Ollama.';
-      setPullStatus('Download failed');
+      const message = (error as Error).message || 'Failed to download GGUF model.';
+      setDeviceModelStatus('Error');
       setProviderConnected(false);
-      Alert.alert('Model download failed', message, [
+      Alert.alert('On-device model download failed', message, [
         {
           text: 'Retry',
           onPress: () => {
-            handlePullModel();
+            handlePrepareDeviceModel();
           },
         },
         { text: 'Close', style: 'cancel' },
       ]);
     } finally {
-      setPullingModel(false);
+      setPreparingDeviceModel(false);
     }
   };
 
@@ -128,9 +144,12 @@ export default function HomeScreen() {
           </Text>
           {inferenceMode === 'lan' && (
             <Text style={styles.modelStatus}>
-              {pullStatus
-                ? `Model: ${lanModel} · ${pullStatus}`
-                : `Model: ${lanModel}`}
+              {`Model: ${lanModel}`}
+            </Text>
+          )}
+          {inferenceMode === 'device' && (
+            <Text style={styles.modelStatus}>
+              {`On-device model: ${deviceModelStatus || 'Not downloaded'}`}
             </Text>
           )}
         </View>
@@ -139,14 +158,14 @@ export default function HomeScreen() {
             <Ionicons name="settings-outline" size={18} color="#fff" />
             <Text style={styles.settingsButtonText}>Settings</Text>
           </TouchableOpacity>
-          {inferenceMode === 'lan' && (
+          {inferenceMode === 'device' && (
             <TouchableOpacity
-              onPress={handlePullModel}
-              style={[styles.pullButton, pullingModel && styles.pullButtonDisabled]}
-              disabled={pullingModel}
+              onPress={handlePrepareDeviceModel}
+              style={[styles.pullButton, preparingDeviceModel && styles.pullButtonDisabled]}
+              disabled={preparingDeviceModel}
             >
               <Ionicons name="cloud-download-outline" size={18} color="#fff" />
-              <Text style={styles.pullButtonText}>{pullingModel ? 'Pulling...' : 'Pull Model'}</Text>
+              <Text style={styles.pullButtonText}>{preparingDeviceModel ? 'Downloading...' : 'Download GGUF'}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity onPress={handleNewChat} style={styles.newChatButton}>

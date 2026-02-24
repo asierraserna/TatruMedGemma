@@ -23,6 +23,12 @@ const getLocalhost = () => {
 
 export const OLLAMA_BASE_URL = getLocalhost();
 export const GEMMA_MODEL = process.env.EXPO_PUBLIC_OLLAMA_MODEL?.trim() || 'MedAIBase/MedGemma1.5:4b';
+export const DEVICE_GGUF_URL =
+  process.env.EXPO_PUBLIC_DEVICE_GGUF_URL?.trim() ||
+  'https://huggingface.co/unsloth/medgemma-4b-it-GGUF/resolve/main/medgemma-4b-it-Q4_K_S.gguf';
+export const DEVICE_MMPROJ_URL =
+  process.env.EXPO_PUBLIC_DEVICE_MMPROJ_URL?.trim() ||
+  'https://huggingface.co/unsloth/medgemma-4b-it-GGUF/resolve/main/mmproj-F16.gguf';
 export const OLLAMA_SYSTEM_PROMPT =
   process.env.EXPO_PUBLIC_OLLAMA_SYSTEM_PROMPT?.trim() ||
   'You are a medical assistant powered by MedGemma. Give clear, concise, safe guidance and suggest seeking licensed clinical care when uncertainty or risk is high.';

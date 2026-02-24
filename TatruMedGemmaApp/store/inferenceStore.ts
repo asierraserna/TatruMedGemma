@@ -7,6 +7,8 @@ import {
   CLOUD_MODEL,
   CLOUD_SYSTEM_PROMPT,
   DEFAULT_INFERENCE_MODE,
+  DEVICE_GGUF_URL,
+  DEVICE_MMPROJ_URL,
   GEMMA_MODEL,
   GUARDRAILS_MANIFEST_URL,
   KAGGLE_GRADIO_URL,
@@ -17,6 +19,8 @@ import {
 
 export interface DeviceProviderSettings {
   modelId: string;
+  ggufUrl: string;
+  mmprojUrl?: string;
   modelPath?: string;
 }
 
@@ -185,6 +189,8 @@ export const useInferenceStore = create<InferenceState>()(
       mode: DEFAULT_INFERENCE_MODE,
       device: {
         modelId: GEMMA_MODEL,
+        ggufUrl: DEVICE_GGUF_URL,
+        mmprojUrl: DEVICE_MMPROJ_URL,
       },
       lan: {
         baseUrl: OLLAMA_BASE_URL,

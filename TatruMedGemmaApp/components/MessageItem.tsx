@@ -123,6 +123,7 @@ const styles = StyleSheet.create({
   assistantBubble: {
     backgroundColor: '#E5E5EA', // Light gray
     borderTopLeftRadius: 2,
+    paddingRight: 34,
   },
   text: {
     fontSize: 16,
@@ -163,7 +164,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
-    padding: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
   },
 });
 
