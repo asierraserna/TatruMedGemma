@@ -35,9 +35,18 @@ The schema is designed around safety layers:
 1. Build new `guardrails.db` offline from ETL jobs.
 2. Compute SHA-256 for all bundles.
 3. Produce `manifest.json` (same shape as `manifest.example.json`).
+   - the manifest may now include two optional sections that will be
+     consumed by the app:
+     * `policy` – a collection of rules that may be translated into
+       topic‑based allow/deny settings.
+     * `promptPackInline` – contains a `systemPrompt` and example
+       exchanges; this becomes the active guardrails system prompt.
 4. Sign manifest payload digest (`signature`).
 5. Host `manifest.json` + bundles on your server.
 6. App calls `planGuardrailsUpdate(manifestUrl)` and verifies before applying.
+   * the returned `guardrailsPatch` can be merged into the app state
+     automatically; topics and prompts will update immediately even
+     before the database is swapped in.
 
 ## Next implementation steps
 

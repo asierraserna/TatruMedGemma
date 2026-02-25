@@ -65,6 +65,36 @@ export interface GuardrailsSettings {
   allowedTopics: GuardrailsTopicPolicy[];
   promptTemplates: GuardrailsPromptTemplate[];
   activePromptTemplateId: string;
+
+  // raw policy/prompt pack from manifest, mostly for transparency
+  policy?: GuardrailsPolicy;
+  promptPackInline?: PromptPackInline;
+}
+
+export interface GuardrailsPolicyRule {
+  id: string;
+  description: string;
+  matchTopics: string[];
+  decision: string;
+  exampleResponse?: string;
+}
+
+export interface GuardrailsPolicy {
+  version: string;
+  defaultDecision: string;
+  rules: GuardrailsPolicyRule[];
+}
+
+export interface PromptPackInline {
+  templateKey: string;
+  systemPrompt: string;
+  userPromptExamples: UserPromptExample[];
+}
+
+export interface UserPromptExample {
+  id: string;
+  user: string;
+  assistant: string;
 }
 
 export interface GuardrailsTopicPolicy {
@@ -146,6 +176,8 @@ const normalizeGuardrailsSettings = (
       : DEFAULT_GUARDRAIL_TOPICS,
     promptTemplates,
     activePromptTemplateId,
+    policy: value?.policy,
+    promptPackInline: value?.promptPackInline,
   };
 };
 

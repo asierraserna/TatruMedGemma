@@ -7,7 +7,7 @@
   "minAppVersion": "1.0.0",
   "recommendedAppVersion": "1.2.0",
   "locale": "en-US",
-  "notes": "Lightweight example manifest: self-contained guardrails (no external DB bundles). Useful for demos and local testing.",
+  "notes": "Lightweight example manifest: self-contained guardrails (no external DB bundles) plus inline policy and system prompt. Useful for demos and local testing.",
   "compatibility": {
     "minSchemaVersion": "2026.02",
     "maxSchemaVersion": "2027.12"
@@ -23,7 +23,6 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   ],
-
   "policy": {
     "version": "light-2026.02",
     "defaultDecision": "review",
@@ -51,7 +50,6 @@
       }
     ]
   },
-
   "promptPackInline": {
     "templateKey": "medgemma_light_system",
     "systemPrompt": "You are MedGemma — a clinical assistant that provides safe, conservative, and non-prescriptive guidance. Always prioritize patient safety: flag red flags, avoid prescribing medications, and recommend escalation when appropriate. Be concise and cite when appropriate.",
@@ -68,7 +66,6 @@
       }
     ]
   },
-
   "metadata": {
     "topicCount": 3,
     "contentSummary": {
@@ -76,12 +73,10 @@
       "examplePrompts": 2
     }
   },
-
   "integrity": {
     "hashAlgorithm": "sha256",
     "requiredSignatures": 0
   },
-
   "emergencyKillSwitch": {
     "enabled": false,
     "message": ""

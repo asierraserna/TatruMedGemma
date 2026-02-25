@@ -254,10 +254,19 @@ export default function SettingsScreen() {
       const resultText = `v${plan.manifest.dbVersion} · ${bundleCount} required bundle${bundleCount === 1 ? '' : 's'}`;
       setGuardrailsCheckResult(resultText);
 
-      Alert.alert(
-        'Guardrails update available',
-        `Version: ${plan.manifest.dbVersion}\nRequired bundles: ${bundleCount}`
-      );
+      // if the manifest includes guardrails metadata, merge it into store
+      if (plan.guardrailsPatch && Object.keys(plan.guardrailsPatch).length > 0) {
+        actions.updateGuardrails(plan.guardrailsPatch);
+        Alert.alert(
+          'Guardrails updated',
+          `Version: ${plan.manifest.dbVersion}\nRules and prompts from manifest have been applied.`
+        );
+      } else {
+        Alert.alert(
+          'Guardrails update available',
+          `Version: ${plan.manifest.dbVersion}\nRequired bundles: ${bundleCount}`
+        );
+      }
     } catch (error) {
       const message = (error as Error).message || 'Failed to check guardrails updates.';
       setGuardrailsCheckResult('Check failed');

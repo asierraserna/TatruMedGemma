@@ -13,6 +13,33 @@ export interface GuardrailsSignature {
   value: string;
 }
 
+export interface GuardrailsPolicyRule {
+  /** unique identifier for the rule, used as a topic id when converted */
+  id: string;
+  description: string;
+  matchTopics: string[];
+  decision: string;
+  exampleResponse?: string;
+}
+
+export interface GuardrailsPolicy {
+  version: string;
+  defaultDecision: string;
+  rules: GuardrailsPolicyRule[];
+}
+
+export interface UserPromptExample {
+  id: string;
+  user: string;
+  assistant: string;
+}
+
+export interface PromptPackInline {
+  templateKey: string;
+  systemPrompt: string;
+  userPromptExamples: UserPromptExample[];
+}
+
 export interface GuardrailsManifest {
   manifestVersion: number;
   project: string;
@@ -28,6 +55,10 @@ export interface GuardrailsManifest {
     attributionUrl?: string;
   };
   signature?: GuardrailsSignature;
+
+  // new optional guardrails metadata that can accompany an update manifest
+  policy?: GuardrailsPolicy;
+  promptPackInline?: PromptPackInline;
 }
 
 export interface GuardrailsValidationResult {
