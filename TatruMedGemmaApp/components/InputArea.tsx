@@ -70,7 +70,15 @@ export const InputArea: React.FC<InputAreaProps> = ({
   };
 
   return (
-    <View style={[styles.container, style, {paddingBottom: Platform.OS === 'ios' ? insets.bottom : insets.bottom || 8}]}>
+    <View
+      style={[
+        styles.container,
+        style,
+        {
+          paddingBottom: Platform.OS === 'ios' ? insets.bottom : insets.bottom || 8,
+        },
+      ]}
+    >
       {!!selectedImageUri && (
         <View style={styles.attachmentRow}>
           <Text style={styles.attachmentText}>Image attached</Text>

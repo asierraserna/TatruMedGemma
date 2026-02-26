@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, Platform } from 'react-native';
+import { Alert, View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView, Platform, NativeModules } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useChatStore } from '../../store/chatStore';
@@ -10,6 +10,7 @@ import {
 } from '../../services/inference/router';
 import { useInferenceStore } from '../../store/inferenceStore';
 import { clearDeviceModelFiles, downloadDeviceModel, getDeviceModelState } from '../../services/inference/deviceModelService';
+import { MIN_FREE_MEMORY_BYTES } from '../../services/inference/providers/deviceProvider';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -66,6 +67,36 @@ export default function HomeScreen() {
   }, []);
 
   const handlePrepareDeviceModel = async () => {
+    // always warn about device requirements and potential OOM/crashes
+    const warning =
+      'On-device inference is resource‑intensive. Devices with less than 8 GB of ' +
+      'RAM may almost certainly fail when loading or running the model, potentially terminating ' +
+      'the app with an "Out of memory" error. Downloading the GGUF file does not ' +
+      'guarantee that it can be used successfully. Proceed only if you understand ' +
+      'these risks and believe your phone is capable.';
+    let proceed = false;
+    await new Promise<void>((resolve) => {
+      Alert.alert('Download warning', warning, [
+        { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
+        { text: 'Continue', onPress: () => { proceed = true; resolve(); } },
+      ]);
+    });
+    if (!proceed) {
+      return;
+    }
+
+    // quick hardware sanity check: total RAM should exceed the threshold
+    const pm = (NativeModules as any)?.PlatformConstants;
+    const mem = pm?.totalMemory;
+    if (typeof mem === 'number' && mem < MIN_FREE_MEMORY_BYTES) {
+      Alert.alert(
+        'Low RAM detected',
+        `This device reports only ${(mem / (1024 ** 3)).toFixed(1)} GB total RAM, ` +
+          'which is below the recommended 8 GB. Inference may not run and could OOM.',
+        [{ text: 'OK' }]
+      );
+    }
+
     const abortController = new AbortController();
     downloadAbortControllerRef.current = abortController;
 
@@ -182,7 +213,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>GemmaMed Help</Text>
+          <Text style={styles.headerTitle}>Tatru MedGemma</Text>
           <Text
             style={[
               styles.connectionStatus,

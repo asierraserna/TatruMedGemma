@@ -22,6 +22,10 @@ export interface DeviceProviderSettings {
   ggufUrl: string;
   mmprojUrl?: string;
   modelPath?: string;
+  // optional tuning controls for on-device inference
+  nCtx?: number;
+  nBatch?: number;
+  useMlock?: boolean;
 }
 
 export interface LanProviderSettings {
@@ -223,6 +227,9 @@ export const useInferenceStore = create<InferenceState>()(
         modelId: GEMMA_MODEL,
         ggufUrl: DEVICE_GGUF_URL,
         mmprojUrl: DEVICE_MMPROJ_URL,
+        nCtx: undefined,       // will default in provider
+        nBatch: undefined,
+        useMlock: undefined,
       },
       lan: {
         baseUrl: OLLAMA_BASE_URL,

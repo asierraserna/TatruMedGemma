@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, FlatList, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,6 +21,9 @@ export default function ChatScreen() {
   const [streamingResponse, setStreamingResponse] = useState('');
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [composerText, setComposerText] = useState('');
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  // offset currently used to pad list; input positioning handled by KeyboardAvoidingView
   const flatListRef = useRef<FlatList>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const sendingRef = useRef(false);
@@ -43,6 +46,22 @@ export default function ChatScreen() {
       abortControllerRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+      flatListRef.current?.scrollToEnd({ animated: true });
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
 
   // If session not found, handle it (redirect or create?)
   // For now, assume id is valid or redirect
@@ -219,42 +238,42 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingBottom: insets.bottom }]}>      
-      <KeyboardAvoidingView 
-        style={{flex: 1}}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <SafeAreaView style={[styles.container, { paddingBottom: keyboardVisible ? 0 : insets.bottom }]}>      
         <Stack.Screen options={{ title: currentSession.title || 'Chat' }} />
-        
-        <View style={styles.listContainer}>
-        <FlatList
-          ref={flatListRef}
-          data={displayedMessages}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => <MessageItem message={item} />}
-          contentContainerStyle={styles.listContent}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          ListFooterComponent={loading ? <ActivityIndicator style={{ margin: 10 }} /> : null}
+          
+        <View style={[styles.listContainer, { paddingBottom: 20 }] }>
+          <FlatList
+            ref={flatListRef}
+            data={displayedMessages}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => <MessageItem message={item} />}
+            contentContainerStyle={styles.listContent}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            ListFooterComponent={loading ? <ActivityIndicator style={{ margin: 10 }} /> : null}
+          />
+        </View>
+
+        <InputArea
+          style={{ paddingBottom: keyboardVisible ? 0 : insets.bottom }}
+          onSend={handleSend}
+          onCamera={handleCamera}
+          onGallery={handleGallery}
+          onMic={() => Alert.alert('Voice', 'Coming in next update')}
+          onAnalyzeImage={handleAnalyzeSelectedImage}
+          textValue={composerText}
+          onTextChange={setComposerText}
+          loading={loading}
+          selectedImageUri={selectedImageUri}
+          onClearImage={() => setSelectedImageUri(null)}
         />
-      </View>
-      
-      <InputArea 
-        style={{paddingBottom: insets.bottom}}
-        onSend={handleSend} 
-        onCamera={handleCamera}
-        onGallery={handleGallery}
-        onMic={() => Alert.alert('Voice', 'Coming in next update')}
-        onAnalyzeImage={handleAnalyzeSelectedImage}
-        textValue={composerText}
-        onTextChange={setComposerText}
-        loading={loading}
-        selectedImageUri={selectedImageUri}
-        onClearImage={() => setSelectedImageUri(null)}
-      />
+      </SafeAreaView>
     </KeyboardAvoidingView>
-    </SafeAreaView>
   );
 }
 
@@ -274,6 +293,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 10,
-    paddingBottom: 20,
+    paddingBottom: 20, // extra bottom space (keyboard height is added dynamically)
   }
 });

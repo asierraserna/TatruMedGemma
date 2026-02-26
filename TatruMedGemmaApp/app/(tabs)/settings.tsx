@@ -13,9 +13,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  NativeModules,
 } from 'react-native';
 import { Stack } from 'expo-router';
-import { InferenceMode } from '../../constants/Config';
+import { InferenceMode, DEVICE_MIN_TOTAL_MEMORY_BYTES } from '../../constants/Config';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { planGuardrailsUpdate } from '../../services/guardrails/updateService';
 import { checkOllamaConnection, fetchOllamaModelTags } from '../../services/ollamaService';
@@ -53,6 +54,9 @@ export default function SettingsScreen() {
   const [deviceModelId, setDeviceModelId] = useState(device.modelId);
   const [deviceGgufUrl, setDeviceGgufUrl] = useState(device.ggufUrl);
   const [deviceMmprojUrl, setDeviceMmprojUrl] = useState(device.mmprojUrl || '');
+  const [deviceNCtx, setDeviceNCtx] = useState(device.nCtx?.toString() || '');
+  const [deviceNBatch, setDeviceNBatch] = useState(device.nBatch?.toString() || '');
+  const [deviceUseMlock, setDeviceUseMlock] = useState(device.useMlock || false);
   const [lanBaseUrl, setLanBaseUrl] = useState(lan.baseUrl);
   const [lanModel, setLanModel] = useState(lan.model);
   const [cloudBaseUrl, setCloudBaseUrl] = useState(cloud.baseUrl);
@@ -72,6 +76,9 @@ export default function SettingsScreen() {
   const [medasrTranscribePath, setMedasrTranscribePath] = useState(medasr.transcribePath);
   const [guardrailsManifestUrl, setGuardrailsManifestUrl] = useState(guardrails.manifestUrl);
   const [newTopicName, setNewTopicName] = useState('');
+  const [deviceTotalMem, setDeviceTotalMem] = useState<number | null>(null);
+  const [deviceTotalMemRaw, setDeviceTotalMemRaw] = useState<any>(null);
+  const [showMemoryAlert, setShowMemoryAlert] = useState(false);
   const [newTopicAllowed, setNewTopicAllowed] = useState(true);
   const [promptVersion, setPromptVersion] = useState('');
   const [promptLabel, setPromptLabel] = useState('');
@@ -92,6 +99,36 @@ export default function SettingsScreen() {
   const [promptSaveResult, setPromptSaveResult] = useState<string | null>(null);
 
   const guardrailsTopics = useMemo(() => guardrails.allowedTopics || [], [guardrails.allowedTopics]);
+
+  // fetch total memory once on mount
+  React.useEffect(() => {
+    const pc = (NativeModules as any)?.PlatformConstants;
+    console.log('PlatformConstants object', pc);
+    const mem = pc?.totalMemory;
+    console.log('totalMemory raw value', mem);
+    setDeviceTotalMemRaw(mem);
+    if (typeof mem === 'number') {
+      setDeviceTotalMem(mem);
+    }
+  }, []);
+
+  // show a one-time alert when user selects on-device mode on a low-RAM device
+  React.useEffect(() => {
+    if (
+      draftMode === 'device' &&
+      deviceTotalMem !== null &&
+      deviceTotalMem < DEVICE_MIN_TOTAL_MEMORY_BYTES &&
+      !showMemoryAlert
+    ) {
+      const gb = (deviceTotalMem / (1024 ** 3)).toFixed(1);
+      Alert.alert(
+        'Low device memory',
+        `This phone only has about ${gb} GB of RAM; on-device inference may fail or be very slow. ` +
+          'Consider using LAN or cloud mode instead.',
+        [{ text: 'OK', onPress: () => setShowMemoryAlert(true) }]
+      );
+    }
+  }, [draftMode, deviceTotalMem, showMemoryAlert]);
   const guardrailsPromptTemplates = useMemo(
     () => guardrails.promptTemplates || [],
     [guardrails.promptTemplates]
@@ -112,6 +149,9 @@ export default function SettingsScreen() {
       deviceModelId !== device.modelId ||
       deviceGgufUrl !== device.ggufUrl ||
       deviceMmprojUrl !== (device.mmprojUrl || '') ||
+      deviceNCtx !== (device.nCtx?.toString() || '') ||
+      deviceNBatch !== (device.nBatch?.toString() || '') ||
+      deviceUseMlock !== !!device.useMlock ||
       lanBaseUrl !== lan.baseUrl ||
       lanModel !== lan.model ||
       cloudBaseUrl !== cloud.baseUrl ||
@@ -143,9 +183,15 @@ export default function SettingsScreen() {
     device.ggufUrl,
     device.mmprojUrl,
     device.modelId,
+    device.nCtx,
+    device.nBatch,
+    device.useMlock,
     deviceGgufUrl,
     deviceMmprojUrl,
     deviceModelId,
+    deviceNCtx,
+    deviceNBatch,
+    deviceUseMlock,
     medsiglip.enabled,
     medsiglip.model,
     medsiglip.baseUrl,
@@ -203,6 +249,9 @@ export default function SettingsScreen() {
       modelId: deviceModelId.trim(),
       ggufUrl: deviceGgufUrl.trim(),
       mmprojUrl: deviceMmprojUrl.trim() || undefined,
+      nCtx: deviceNCtx.trim() ? parseInt(deviceNCtx.trim(), 10) : undefined,
+      nBatch: deviceNBatch.trim() ? parseInt(deviceNBatch.trim(), 10) : undefined,
+      useMlock: deviceUseMlock,
     });
     actions.updateLan({
       baseUrl: lanBaseUrl.trim(),
@@ -536,6 +585,21 @@ export default function SettingsScreen() {
               autoCorrect={false}
               placeholder="google/medgemma-4b-it"
             />
+            {deviceTotalMem !== null && (
+              <>
+                <Text style={styles.helperText}>
+                  Device RAM: {(deviceTotalMem / (1024 ** 3)).toFixed(1)} GB
+                </Text>
+                {deviceTotalMemRaw != null && (
+                  <Text style={styles.helperText}>
+                    (raw: {String(deviceTotalMemRaw)})
+                  </Text>
+                )}
+              </>
+            )}
+            {deviceTotalMem !== null && deviceTotalMem < DEVICE_MIN_TOTAL_MEMORY_BYTES && (
+              <Text style={[styles.helperText, { color: '#d00' }]}>⚠️ Low memory – on-device inference may not work. Consider LAN/cloud.</Text>
+            )}
             <Text style={styles.fieldLabel}>GGUF Download URL</Text>
             <TextInput
               style={styles.input}
@@ -554,6 +618,29 @@ export default function SettingsScreen() {
               autoCorrect={false}
               placeholder="https://huggingface.co/.../mmproj-F16.gguf"
             />
+            <Text style={styles.fieldLabel}>Context window (n_ctx)</Text>
+            <TextInput
+              style={styles.input}
+              value={deviceNCtx}
+              onChangeText={setDeviceNCtx}
+              keyboardType="numeric"
+              placeholder="768"
+            />
+            <Text style={styles.fieldLabel}>Batch size (n_batch)</Text>
+            <TextInput
+              style={styles.input}
+              value={deviceNBatch}
+              onChangeText={setDeviceNBatch}
+              keyboardType="numeric"
+              placeholder="64"
+            />
+            <View style={styles.toggleRow}>
+              <Text style={styles.fieldLabel}>Use mlock</Text>
+              <Switch
+                value={deviceUseMlock}
+                onValueChange={setDeviceUseMlock}
+              />
+            </View>
             <Text style={styles.helperText}>
               Public, direct URLs are easiest for mobile download. Hugging Face resolve links work well for no-login access.
             </Text>

@@ -5,6 +5,8 @@ MedGemma Impact Challenge](https://www.kaggle.com/competitions/med-gemma-impact-
 The codebase demonstrates on‑device, LAN and online inference with a
 privacy‑focused UI.
 
+### _Note: Minor stability fixes were applied post-deadline (Feb 25) to ensure the live demo and repo remain functional for evaluation. No new features or model changes were introduced._
+
 ## Key features
 
 - Text-based conversation with a medical‑domain LLM.

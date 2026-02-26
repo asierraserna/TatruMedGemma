@@ -2,7 +2,7 @@
   "expo": {
     "name": "tatru-medgemma-app",
     "slug": "tatru-medgemma-app",
-    "version": "1.0.0",
+    "version": "1.4.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tatrumedgemmaapp",
@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.sirnejo.tatrumedgemmaapp"
+      "package": "com.sirnejo.tatrumedgemmaapp",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "output": "static",

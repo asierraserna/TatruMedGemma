@@ -63,3 +63,12 @@ export const GUARDRAILS_MANIFEST_URL =
 // Kaggle Spaces Gradio endpoint, e.g. https://abc123.gradio.live
 export const KAGGLE_GRADIO_URL =
   process.env.EXPO_PUBLIC_KAGGLE_GRADIO_URL?.trim() || 'https://0f9900aa8f37a62d2e.gradio.live';
+
+// Tuned defaults used by the device provider when the user hasn't overridden them.
+export const DEVICE_N_CTX = 768;
+export const DEVICE_N_PREDICT = 384;
+
+// Warn users if their device has very little physical RAM – on‑device inference
+// is unlikely to succeed on phones with less than the configured threshold.
+// default is currently 6 GB but can be reduced for testing.
+export const DEVICE_MIN_TOTAL_MEMORY_BYTES = 6 * 1024 * 1024 * 1024; // 6 GB

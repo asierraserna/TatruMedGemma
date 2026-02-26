@@ -1,13 +1,22 @@
 import { Message } from '../../../types';
+import * as FileSystem from 'expo-file-system';
 import { useInferenceStore } from '../../../store/inferenceStore';
+import type { DeviceProviderSettings } from '../../../store/inferenceStore';
 import { AIProvider, GenerateResponseOptions } from '../types';
 import { getDeviceModelState } from '../deviceModelService';
+import { NativeModules } from 'react-native';
 
 const DEVICE_NOT_READY_MESSAGE =
   'On-device MedGemma is not ready yet. Download the GGUF model first from the Home screen.';
 const MAX_RECENT_TURNS = 8;
-const DEVICE_N_CTX = 1024;
+const DEVICE_N_CTX = 768;
 const DEVICE_N_PREDICT = 384;
+
+// require at least 5 GB of *total* RAM before attempting to initialise llama.
+// (free‑memory probes aren't available via PlatformConstants, so this is
+// only a rough heuristic.  The value was bumped because lower‑RAM phones
+// consistently trigger OOM kills when the context is created.)
+export const MIN_FREE_MEMORY_BYTES = 5 * 1024 * 1024 * 1024;
 
 type LlamaContext = {
   completion: (
@@ -18,10 +27,12 @@ type LlamaContext = {
 };
 
 let activeContext: LlamaContext | null = null;
-let activeModelUri = '';
+// Instead of just model URI, keep a key incorporating tuning parameters so changes
+// will trigger a new llama context.
+let activeContextKey = '';
 
 const mapMessagesForLlama = (messages: Message[], systemPrompt?: string) => {
-  const promptMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+  const promptMessages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [];
 
   if (systemPrompt?.trim()) {
     promptMessages.push({
@@ -30,7 +41,7 @@ const mapMessagesForLlama = (messages: Message[], systemPrompt?: string) => {
     });
   }
 
-  const chatTurns: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  const chatTurns: { role: 'user' | 'assistant'; content: string }[] = [];
 
   for (const message of messages) {
     if ((message.role !== 'user' && message.role !== 'assistant') || !message.content?.trim()) {
@@ -67,13 +78,52 @@ const mapMessagesForLlama = (messages: Message[], systemPrompt?: string) => {
   return promptMessages;
 };
 
+// read available memory from /proc/meminfo (Android only). returns bytes or null
+async function getFreeMemoryBytes(): Promise<number | null> {
+  try {
+    const text = await FileSystem.readAsStringAsync('/proc/meminfo');
+    const m = text.match(/^MemAvailable:\s+(\d+)\s+kB/m);
+    if (m) {
+      return parseInt(m[1], 10) * 1024;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 const ensureLlamaContext = async (modelUri: string): Promise<LlamaContext> => {
-  if (activeContext && activeModelUri === modelUri) {
+  // grab current device tuning settings; fall back to constants if not set.
+  // cast explicitly because TS may have cached the earlier shape of the store
+  const {
+    nCtx = DEVICE_N_CTX,
+    nBatch = 64,
+    useMlock = false,
+  } = useInferenceStore.getState().device as DeviceProviderSettings;
+
+  const contextKey = `${modelUri}|nctx=${nCtx}|nbatch=${nBatch}|mlock=${useMlock}`;
+  if (activeContext && activeContextKey === contextKey) {
     return activeContext;
   }
 
   if (activeContext?.release) {
     await activeContext.release();
+  }
+
+  // pre-flight memory checks: both total RAM and (if available) free RAM
+  try {
+    const totalMem = (NativeModules as any)?.PlatformConstants?.totalMemory;
+    if (typeof totalMem === 'number' && totalMem < MIN_FREE_MEMORY_BYTES) {
+      throw new Error('insufficient memory');
+    }
+
+    const freeMem = await getFreeMemoryBytes();
+    if (typeof freeMem === 'number' && freeMem < MIN_FREE_MEMORY_BYTES) {
+      // available memory too low even if total is high
+      throw new Error('insufficient memory');
+    }
+  } catch {
+    // failed to query or memory too low, propagate later in caller
   }
 
   const llamaModule = (await import('llama.rn')) as {
@@ -82,15 +132,15 @@ const ensureLlamaContext = async (modelUri: string): Promise<LlamaContext> => {
 
   const context = await llamaModule.initLlama({
     model: modelUri,
-    n_ctx: DEVICE_N_CTX,
+    n_ctx: nCtx,
     n_predict: DEVICE_N_PREDICT,
-    n_batch: 256,
+    n_batch: nBatch,
     n_gpu_layers: 0,
-    use_mlock: true,
+    use_mlock: useMlock,
   });
 
   activeContext = context;
-  activeModelUri = modelUri;
+  activeContextKey = contextKey;
 
   return context;
 };
@@ -110,7 +160,20 @@ export const deviceProvider: AIProvider = {
       );
     }
 
-    const context = await ensureLlamaContext(state.ggufUri);
+    let context: LlamaContext;
+    try {
+      context = await ensureLlamaContext(state.ggufUri);
+    } catch (err) {
+      // propagate memory-specific errors with clearer user message
+      const msg = (err as Error).message || '';
+      if (msg.toLowerCase().includes('memory')) {
+        throw new Error(
+          'On-device model could not start due to low device memory. ' +
+            'Try a smaller model or free up RAM.'
+        );
+      }
+      throw err;
+    }
     const llamaMessages = mapMessagesForLlama(messages, options?.systemPrompt);
     let streamedText = '';
 
