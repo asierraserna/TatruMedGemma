@@ -37,9 +37,13 @@ export default function HomeScreen() {
         setProviderConnected(status.connected);
       }
 
-      if (active && inferenceMode === 'device') {
+      if (active && inferenceMode === 'device' && Platform.OS !== 'web') {
         const modelState = await getDeviceModelState();
         setDeviceModelStatus(modelState.ggufExists ? 'Ready' : 'Not downloaded');
+      } else if (active && inferenceMode === 'device' && Platform.OS === 'web') {
+        // web runtime cannot store models locally
+        setDeviceModelStatus('Not available on web'); // keep string same
+
       }
     };
 
@@ -240,13 +244,16 @@ export default function HomeScreen() {
               {`On-device model: ${deviceModelStatus || 'Not downloaded'}`}
             </Text>
           )}
+          {inferenceMode === 'device' && Platform.OS === 'web' && (
+            <Text style={[styles.modelStatus, { color: '#888' }]}>⚠️ on-device inference not supported in web builds</Text>
+          )}
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsButton}>
             <Ionicons name="settings-outline" size={18} color="#fff" />
             <Text style={styles.settingsButtonText}>Settings</Text>
           </TouchableOpacity>
-          {inferenceMode === 'device' && (
+          {inferenceMode === 'device' && Platform.OS !== 'web' && (
             <>
               <TouchableOpacity
                 onPress={handlePrepareDeviceModel}

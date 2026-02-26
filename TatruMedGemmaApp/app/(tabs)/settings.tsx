@@ -51,30 +51,30 @@ export default function SettingsScreen() {
   const actions = useInferenceStore((state) => state.actions);
 
   const [draftMode, setDraftMode] = useState<InferenceMode>(mode);
-  const [deviceModelId, setDeviceModelId] = useState(device.modelId);
-  const [deviceGgufUrl, setDeviceGgufUrl] = useState(device.ggufUrl);
+  const [deviceModelId, setDeviceModelId] = useState(device.modelId || '');
+  const [deviceGgufUrl, setDeviceGgufUrl] = useState(device.ggufUrl || '');
   const [deviceMmprojUrl, setDeviceMmprojUrl] = useState(device.mmprojUrl || '');
   const [deviceNCtx, setDeviceNCtx] = useState(device.nCtx?.toString() || '');
   const [deviceNBatch, setDeviceNBatch] = useState(device.nBatch?.toString() || '');
   const [deviceUseMlock, setDeviceUseMlock] = useState(device.useMlock || false);
-  const [lanBaseUrl, setLanBaseUrl] = useState(lan.baseUrl);
-  const [lanModel, setLanModel] = useState(lan.model);
-  const [cloudBaseUrl, setCloudBaseUrl] = useState(cloud.baseUrl);
-  const [cloudModel, setCloudModel] = useState(cloud.model);
-  const [cloudApiKey, setCloudApiKey] = useState(cloud.apiKey);
-  const [flaskBaseUrl, setFlaskBaseUrl] = useState(flask.baseUrl);
-  const [kaggleGradioUrl, setKaggleGradioUrl] = useState(kaggle.gradioUrl);
+  const [lanBaseUrl, setLanBaseUrl] = useState(lan.baseUrl || '');
+  const [lanModel, setLanModel] = useState(lan.model || '');
+  const [cloudBaseUrl, setCloudBaseUrl] = useState(cloud.baseUrl || '');
+  const [cloudModel, setCloudModel] = useState(cloud.model || '');
+  const [cloudApiKey, setCloudApiKey] = useState(cloud.apiKey || '');
+  const [flaskBaseUrl, setFlaskBaseUrl] = useState(flask.baseUrl || '');
+  const [kaggleGradioUrl, setKaggleGradioUrl] = useState(kaggle.gradioUrl || '');
   const [testingKaggleConnection, setTestingKaggleConnection] = useState(false);
   const [kaggleTestResult, setKaggleTestResult] = useState<string | null>(null);
   const [medsiglipEnabled, setMedsiglipEnabled] = useState(medsiglip.enabled);
-  const [medsiglipBaseUrl, setMedsiglipBaseUrl] = useState(medsiglip.baseUrl);
-  const [medsiglipModel, setMedsiglipModel] = useState(medsiglip.model);
-  const [medsiglipAnalyzePath, setMedsiglipAnalyzePath] = useState(medsiglip.analyzePath);
+  const [medsiglipBaseUrl, setMedsiglipBaseUrl] = useState(medsiglip.baseUrl || '');
+  const [medsiglipModel, setMedsiglipModel] = useState(medsiglip.model || '');
+  const [medsiglipAnalyzePath, setMedsiglipAnalyzePath] = useState(medsiglip.analyzePath || '');
   const [medasrEnabled, setMedasrEnabled] = useState(medasr.enabled);
-  const [medasrBaseUrl, setMedasrBaseUrl] = useState(medasr.baseUrl);
-  const [medasrModel, setMedasrModel] = useState(medasr.model);
-  const [medasrTranscribePath, setMedasrTranscribePath] = useState(medasr.transcribePath);
-  const [guardrailsManifestUrl, setGuardrailsManifestUrl] = useState(guardrails.manifestUrl);
+  const [medasrBaseUrl, setMedasrBaseUrl] = useState(medasr.baseUrl || '');
+  const [medasrModel, setMedasrModel] = useState(medasr.model || '');
+  const [medasrTranscribePath, setMedasrTranscribePath] = useState(medasr.transcribePath || '');
+  const [guardrailsManifestUrl, setGuardrailsManifestUrl] = useState(guardrails.manifestUrl || '');
   const [newTopicName, setNewTopicName] = useState('');
   const [deviceTotalMem, setDeviceTotalMem] = useState<number | null>(null);
   const [deviceTotalMemRaw, setDeviceTotalMemRaw] = useState<any>(null);
@@ -129,6 +129,17 @@ export default function SettingsScreen() {
       );
     }
   }, [draftMode, deviceTotalMem, showMemoryAlert]);
+
+  // warn when selecting on-device on web builds since it can't actually run
+  React.useEffect(() => {
+    if (draftMode === 'device' && Platform.OS === 'web') {
+      Alert.alert(
+        'Not supported on web',
+        'On-device inference is disabled in the web version of the app, but you can use Ollama or the Python Flask server in your device and connect as http://localhost',
+        [{ text: 'OK' }]
+      );
+    }
+  }, [draftMode]);
   const guardrailsPromptTemplates = useMemo(
     () => guardrails.promptTemplates || [],
     [guardrails.promptTemplates]
@@ -229,59 +240,62 @@ export default function SettingsScreen() {
   };
 
   const handleSave = () => {
-    if (draftMode === 'lan' && !lanBaseUrl.trim()) {
+    // helper that never crashes when given undefined/null
+    const safe = (v?: string) => (v || '').trim();
+
+    if (draftMode === 'lan' && !safe(lanBaseUrl)) {
       Alert.alert('Validation', 'LAN Base URL cannot be empty.');
       return;
     }
 
-    if (draftMode === 'flask' && !flaskBaseUrl.trim()) {
+    if (draftMode === 'flask' && !safe(flaskBaseUrl)) {
       Alert.alert('Validation', 'Flask Base URL cannot be empty.');
       return;
     }
 
-    if (draftMode === 'kaggle' && !kaggleGradioUrl.trim()) {
+    if (draftMode === 'kaggle' && !safe(kaggleGradioUrl)) {
       Alert.alert('Validation', 'Kaggle Space Gradio URL cannot be empty.');
       return;
     }
 
     actions.setMode(draftMode);
     actions.updateDevice({
-      modelId: deviceModelId.trim(),
-      ggufUrl: deviceGgufUrl.trim(),
-      mmprojUrl: deviceMmprojUrl.trim() || undefined,
-      nCtx: deviceNCtx.trim() ? parseInt(deviceNCtx.trim(), 10) : undefined,
-      nBatch: deviceNBatch.trim() ? parseInt(deviceNBatch.trim(), 10) : undefined,
+      modelId: safe(deviceModelId),
+      ggufUrl: safe(deviceGgufUrl),
+      mmprojUrl: safe(deviceMmprojUrl) || undefined,
+      nCtx: safe(deviceNCtx) ? parseInt(safe(deviceNCtx), 10) : undefined,
+      nBatch: safe(deviceNBatch) ? parseInt(safe(deviceNBatch), 10) : undefined,
       useMlock: deviceUseMlock,
     });
     actions.updateLan({
-      baseUrl: lanBaseUrl.trim(),
-      model: lanModel.trim(),
+      baseUrl: safe(lanBaseUrl),
+      model: safe(lanModel),
     });
     actions.updateCloud({
-      baseUrl: cloudBaseUrl.trim(),
-      model: cloudModel.trim(),
-      apiKey: cloudApiKey.trim(),
+      baseUrl: safe(cloudBaseUrl),
+      model: safe(cloudModel),
+      apiKey: safe(cloudApiKey),
     });
     actions.updateFlask({
-      baseUrl: flaskBaseUrl.trim(),
+      baseUrl: safe(flaskBaseUrl),
     });
     actions.updateKaggle({
-      gradioUrl: kaggleGradioUrl.trim(),
+      gradioUrl: safe(kaggleGradioUrl),
     });
     actions.updateMedsiglip({
       enabled: medsiglipEnabled,
-      baseUrl: medsiglipBaseUrl.trim(),
-      model: medsiglipModel.trim(),
-      analyzePath: medsiglipAnalyzePath.trim(),
+      baseUrl: safe(medsiglipBaseUrl),
+      model: safe(medsiglipModel),
+      analyzePath: safe(medsiglipAnalyzePath),
     });
     actions.updateMedasr({
       enabled: medasrEnabled,
-      baseUrl: medasrBaseUrl.trim(),
-      model: medasrModel.trim(),
-      transcribePath: medasrTranscribePath.trim(),
+      baseUrl: safe(medasrBaseUrl),
+      model: safe(medasrModel),
+      transcribePath: safe(medasrTranscribePath),
     });
     actions.updateGuardrails({
-      manifestUrl: guardrailsManifestUrl.trim(),
+      manifestUrl: safe(guardrailsManifestUrl),
     });
 
     Alert.alert('Saved', 'Inference settings updated.');

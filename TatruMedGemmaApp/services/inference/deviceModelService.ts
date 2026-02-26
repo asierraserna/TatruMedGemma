@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useInferenceStore } from '../../store/inferenceStore';
 
@@ -85,7 +86,11 @@ const assertEnoughDiskSpaceForDownload = async (urls: string[], signal?: AbortSi
       .map((url) => getRemoteContentLength(url, signal))
   );
 
-  const estimatedDownloadBytes = sizeEstimates.reduce((sum, value) => sum + (value || 0), 0);
+  // reduce to a numeric total; explicitly type to avoid `undefined` warnings
+  const estimatedDownloadBytes: number = sizeEstimates.reduce<number>(
+    (sum, value) => sum + (value || 0),
+    0
+  );
   if (estimatedDownloadBytes <= 0) {
     return;
   }
@@ -98,8 +103,12 @@ const assertEnoughDiskSpaceForDownload = async (urls: string[], signal?: AbortSi
   }
 };
 
+// Some runtimes (notably web) don't expose a persistent documentDirectory.
+// All public APIs should check for availability before performing file operations.
+const isDocumentDirectoryAvailable = () => !!FileSystem.documentDirectory;
+
 const getModelsDirectoryUri = () => {
-  if (!FileSystem.documentDirectory) {
+  if (!isDocumentDirectoryAvailable()) {
     throw new Error('Document directory is unavailable on this device runtime.');
   }
 
@@ -151,6 +160,12 @@ const resolveFilenameFromUrl = (url: string, fallback: string) => {
 };
 
 export const resolveDeviceModelPaths = (): DeviceModelPaths => {
+  // If there's no document directory, caller should not be trying to use on-device
+  // storage. Return empty strings so consuming code can still destructure safely.
+  if (!isDocumentDirectoryAvailable()) {
+    return { directoryUri: '', ggufUri: '', mmprojUri: undefined };
+  }
+
   const { device } = useInferenceStore.getState();
   const directoryUri = getModelsDirectoryUri();
   const ggufFileName = resolveFilenameFromUrl(device.ggufUrl || '', 'model.gguf');
@@ -167,6 +182,11 @@ export const resolveDeviceModelPaths = (): DeviceModelPaths => {
 };
 
 export const ensureDeviceModelDirectory = async () => {
+  if (!isDocumentDirectoryAvailable()) {
+    // nothing to do on unsupported runtime
+    return '';
+  }
+
   const directoryUri = getModelsDirectoryUri();
   const info = await FileSystem.getInfoAsync(directoryUri);
 
@@ -178,13 +198,25 @@ export const ensureDeviceModelDirectory = async () => {
 };
 
 export const getDeviceModelState = async (): Promise<DeviceModelState> => {
+  if (!isDocumentDirectoryAvailable()) {
+    return {
+      status: 'not-downloaded',
+      ggufUri: '',
+      mmprojUri: undefined,
+      ggufExists: false,
+      mmprojExists: false,
+      mmprojConfigured: false,
+    };
+  }
+
   const { device } = useInferenceStore.getState();
   const { ggufUri, mmprojUri } = resolveDeviceModelPaths();
   const mmprojConfigured = !!mmprojUri;
   const manifest = await readDownloadManifest();
 
-  const ggufInfo = await FileSystem.getInfoAsync(ggufUri);
-  const mmprojInfo = mmprojUri ? await FileSystem.getInfoAsync(mmprojUri) : null;
+  // `FileInfo` doesn't advertise `size` but the native object includes it.
+  const ggufInfo = (await FileSystem.getInfoAsync(ggufUri)) as any;
+  const mmprojInfo = mmprojUri ? ((await FileSystem.getInfoAsync(mmprojUri)) as any) : null;
 
   const ggufExists = !!ggufInfo.exists && !!ggufInfo.size && ggufInfo.size > 0;
   const mmprojExists = mmprojConfigured
@@ -312,8 +344,9 @@ export const downloadDeviceModel = async (options?: {
     await downloadToUri(mmprojUrl, mmprojUri, 'mmproj', options);
   }
 
-  const ggufInfo = await FileSystem.getInfoAsync(ggufUri);
-  const mmprojInfo = mmprojUri ? await FileSystem.getInfoAsync(mmprojUri) : null;
+  // cast to any so we can read `.size`
+  const ggufInfo = (await FileSystem.getInfoAsync(ggufUri)) as any;
+  const mmprojInfo = mmprojUri ? ((await FileSystem.getInfoAsync(mmprojUri)) as any) : null;
 
   await writeDownloadManifest({
     ggufUrl,
@@ -329,6 +362,11 @@ export const downloadDeviceModel = async (options?: {
 };
 
 export const clearDeviceModelFiles = async () => {
+  if (!isDocumentDirectoryAvailable()) {
+    // nothing to clean up
+    return;
+  }
+
   const { ggufUri, mmprojUri } = resolveDeviceModelPaths();
   const targets = [
     ggufUri,
